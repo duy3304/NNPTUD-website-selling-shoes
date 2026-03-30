@@ -7,7 +7,7 @@ let mongoose = require('mongoose')
 let { CheckLogin, checkRole } = require('../utils/authHandler')
 
 // get all reservations (admin/mod)
-router.get('/', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.get('/', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
     let result = await reservationModel.find({})
         .populate('user', 'username email')
         .populate('items.product', 'title price')
@@ -33,7 +33,7 @@ router.get('/:id', CheckLogin, async function (req, res, next) {
             res.status(404).send({ message: "ID NOT FOUND" });
             return;
         }
-        if (req.user.role.name !== "ADMIN" && req.user.role.name !== "MODERATOR") {
+        if (req.user.role.name !== "ADMIN") {
             if (String(result.user) !== String(req.user._id)) {
                 res.status(403).send({ message: "ban khong co quyen" });
                 return;
@@ -46,14 +46,10 @@ router.get('/:id', CheckLogin, async function (req, res, next) {
 });
 
 router.post('/', CheckLogin, async function (req, res, next) {
-    let session = await mongoose.startSession();
-    session.startTransaction()
     try {
         let user = req.user;
         let items = req.body.items || [];
         if (!Array.isArray(items) || items.length === 0) {
-            await session.abortTransaction();
-            await session.endSession()
             res.status(400).send({ message: "items is required" });
             return;
         }
@@ -84,7 +80,7 @@ router.post('/', CheckLogin, async function (req, res, next) {
             })
             inventory.stock -= item.quantity;
             inventory.reserved += item.quantity;
-            await inventory.save({ session })
+            await inventory.save()
         }
         let newReservation = new reservationModel({
             user: user._id,
@@ -93,18 +89,14 @@ router.post('/', CheckLogin, async function (req, res, next) {
             expiredIn: req.body.expiredIn,
             amount: amount
         })
-        newReservation = await newReservation.save({ session })
-        await session.commitTransaction();
-        await session.endSession()
+        newReservation = await newReservation.save()
         res.send(newReservation)
     } catch (error) {
-        await session.abortTransaction();
-        await session.endSession()
         res.status(400).send({ message: error.message })
     }
 })
 
-router.put('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.put('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
     try {
         let id = req.params.id;
         let updatedItem = await reservationModel.findByIdAndUpdate(id, req.body, {
@@ -116,7 +108,7 @@ router.put('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (
     }
 })
 
-router.delete('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.delete('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
     try {
         let id = req.params.id;
         let deletedItem = await reservationModel.findByIdAndDelete(id);

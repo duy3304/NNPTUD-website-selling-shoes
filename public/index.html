@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NNPTUD Shoes - Frontend</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="page">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">NNPTUD Shoes</p>
+          <h1>Giao dien ban giay ket noi API</h1>
+          <p class="subhead">
+            Frontend toi gian de thao tac CRUD, authen, autho, upload voi REST API.
+          </p>
+        </div>
+        <div class="hero-card">
+          <h2>Dang nhap nhanh</h2>
+          <form id="login-form" class="stack">
+            <input id="login-username" type="text" placeholder="Username" required />
+            <input id="login-password" type="password" placeholder="Password" required />
+            <button type="submit" class="btn primary">Dang nhap</button>
+          </form>
+          <form id="register-form" class="stack">
+            <input id="register-username" type="text" placeholder="Username" required />
+            <input id="register-email" type="email" placeholder="Email" required />
+            <input id="register-password" type="password" placeholder="Password" required />
+            <button type="submit" class="btn">Dang ky</button>
+          </form>
+          <div class="split">
+            <button id="logout-btn" class="btn ghost">Dang xuat</button>
+            <button id="me-btn" class="btn ghost">Thong tin toi</button>
+          </div>
+          <p class="muted" id="auth-status">Chua dang nhap</p>
+        </div>
+      </header>
+
+      <section class="grid">
+        <div class="panel">
+          <h2>Mua hang</h2>
+          <div class="filters">
+            <input id="filter-title" type="text" placeholder="Tim theo ten" />
+            <input id="filter-min" type="number" placeholder="Gia min" />
+            <input id="filter-max" type="number" placeholder="Gia max" />
+            <button id="filter-btn" class="btn">Loc</button>
+          </div>
+          <div id="products" class="cards"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Gio hang</h2>
+          <div class="stack">
+            <button id="load-cart" class="btn">Tai gio hang</button>
+            <button id="create-reservation" class="btn primary">Tao don giu hang</button>
+          </div>
+          <div id="cart-items" class="list"></div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <h2>Danh muc</h2>
+          <form id="category-create" class="stack">
+            <input id="category-name" type="text" placeholder="Ten danh muc" required />
+            <button class="btn primary" type="submit">Tao danh muc</button>
+          </form>
+          <form id="category-update" class="stack">
+            <input id="category-id" type="text" placeholder="ID danh muc" required />
+            <input id="category-name-update" type="text" placeholder="Ten moi" required />
+            <button class="btn" type="submit">Cap nhat</button>
+          </form>
+          <form id="category-delete" class="stack">
+            <input id="category-id-delete" type="text" placeholder="ID danh muc" required />
+            <button class="btn ghost" type="submit">Xoa</button>
+          </form>
+          <div id="categories" class="list"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Thuong hieu</h2>
+          <form id="brand-create" class="stack">
+            <input id="brand-name" type="text" placeholder="Ten thuong hieu" required />
+            <input id="brand-logo" type="url" placeholder="Logo URL" />
+            <input id="brand-desc" type="text" placeholder="Mo ta" />
+            <button class="btn primary" type="submit">Tao thuong hieu</button>
+          </form>
+          <form id="brand-update" class="stack">
+            <input id="brand-id" type="text" placeholder="ID thuong hieu" required />
+            <input id="brand-desc-update" type="text" placeholder="Mo ta moi" required />
+            <button class="btn" type="submit">Cap nhat</button>
+          </form>
+          <form id="brand-delete" class="stack">
+            <input id="brand-id-delete" type="text" placeholder="ID thuong hieu" required />
+            <button class="btn ghost" type="submit">Xoa</button>
+          </form>
+          <div id="brands" class="list"></div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <h2>San pham</h2>
+          <form id="product-create" class="stack">
+            <input id="product-sku" type="text" placeholder="SKU" required />
+            <input id="product-title" type="text" placeholder="Ten san pham" required />
+            <input id="product-price" type="number" placeholder="Gia" required />
+            <textarea id="product-desc" placeholder="Mo ta"></textarea>
+            <input id="product-images" type="text" placeholder="Image URLs (comma)" />
+            <select id="product-category" required></select>
+            <select id="product-brand"></select>
+            <button class="btn primary" type="submit">Tao san pham</button>
+          </form>
+          <form id="product-update" class="stack">
+            <input id="product-id" type="text" placeholder="ID san pham" required />
+            <input id="product-price-update" type="number" placeholder="Gia moi" />
+            <input id="product-title-update" type="text" placeholder="Ten moi" />
+            <button class="btn" type="submit">Cap nhat</button>
+          </form>
+          <form id="product-delete" class="stack">
+            <input id="product-id-delete" type="text" placeholder="ID san pham" required />
+            <button class="btn ghost" type="submit">Xoa</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Upload</h2>
+          <form id="upload-one" class="stack" enctype="multipart/form-data">
+            <input id="upload-one-file" type="file" accept="image/*" required />
+            <button class="btn primary" type="submit">Upload 1 anh</button>
+          </form>
+          <form id="upload-multi" class="stack" enctype="multipart/form-data">
+            <input id="upload-multi-files" type="file" accept="image/*" multiple required />
+            <button class="btn" type="submit">Upload nhieu anh</button>
+          </form>
+          <form id="upload-excel" class="stack" enctype="multipart/form-data">
+            <input id="upload-excel-file" type="file" accept=".xlsx" required />
+            <button class="btn ghost" type="submit">Upload Excel</button>
+          </form>
+          <div id="upload-result" class="list"></div>
+        </div>
+      </section>
+
+      <section class="panel status">
+        <h2>Thong bao</h2>
+        <pre id="status-log">San sang...</pre>
+      </section>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

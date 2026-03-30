@@ -7,7 +7,7 @@ let userController = require('../controllers/users')
 let { CheckLogin, checkRole } = require('../utils/authHandler')
 
 
-router.get("/", CheckLogin, checkRole("ADMIN","MODERATOR"), async function (req, res, next) {//ADMIN
+router.get("/", CheckLogin, checkRole("ADMIN"), async function (req, res, next) {//ADMIN
   let users = await userController.GetAllUser()
   res.send(users);
 });
@@ -31,6 +31,27 @@ router.post("/", CheckLogin, checkRole("ADMIN"), CreateAnUserValidator, validate
       req.body.email, req.body.role
     )
     res.send(user);
+  } catch (err) {
+    res.status(400).send({ message: err.message });
+  }
+});
+
+router.post("/bootstrap-admin", CheckLogin, async function (req, res, next) {
+  try {
+    let adminRole = await require("../schemas/roles").findOne({ name: "ADMIN", isDeleted: false });
+    if (!adminRole) {
+      return res.status(400).send({ message: "ADMIN role not found" });
+    }
+    let existingAdmin = await userModel.findOne({ role: adminRole._id, isDeleted: false });
+    if (existingAdmin) {
+      return res.status(403).send({ message: "admin already exists" });
+    }
+    let updatedItem = await userModel.findByIdAndUpdate(
+      req.user._id,
+      { role: adminRole._id },
+      { new: true }
+    ).populate("role");
+    res.send(updatedItem);
   } catch (err) {
     res.status(400).send({ message: err.message });
   }

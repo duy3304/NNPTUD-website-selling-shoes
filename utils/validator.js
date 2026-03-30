@@ -3,7 +3,7 @@ module.exports = {
     validatedResult: function (req, res, next) {
         let result = validationResult(req);
         if (result.errors.length > 0) {
-            res.status(404).send(result.errors.map(
+            res.status(400).send(result.errors.map(
                 function (e) {
                     return {
                         [e.path]: e.msg
@@ -25,8 +25,7 @@ module.exports = {
             minUppercase: 1
         }).withMessage("password phai co it nhat 8 ki tu trong do co it nhat 1 ki tu chu hoa, 1 ki tu chu thuong,1 ki tu so va 1 ki tu dac biet"),
         body('role').notEmpty().withMessage("role khong duoc de trong").bail().isMongoId().withMessage("role phai la ID"),
-        body('avatarUrl').optional().isArray().withMessage("avatarURl pahi la 1 mang"),
-        body('avatarUrl.*').isURL().withMessage("URL khong hop le"),
+        body('avatarUrl').optional().isURL().withMessage("URL khong hop le"),
     ],
     RegisterValidator: [
         body('email').notEmpty().withMessage("email khong duoc de trong").bail().isEmail().withMessage("email sai dinh dang").normalizeEmail(),
@@ -59,7 +58,6 @@ module.exports = {
             minUppercase: 1
         }).withMessage("password phai co it nhat 8 ki tu trong do co it nhat 1 ki tu chu hoa, 1 ki tu chu thuong,1 ki tu so va 1 ki tu dac biet"),
         body('role').isEmpty().withMessage("role khong duoc thay doi"),
-        body('avatarUrl').optional().isArray().withMessage("avatarURl pahi la 1 mang"),
-        body('avatarUrl.*').isURL().withMessage("URL khong hop le"),
+        body('avatarUrl').optional().isURL().withMessage("URL khong hop le"),
     ]
 }

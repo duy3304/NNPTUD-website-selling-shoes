@@ -25,7 +25,7 @@ router.get('/:id', async function (req, res, next) {
     }
 });
 
-router.post('/', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.post('/', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
     try {
         let { product, stock, reserved, soldCount } = req.body;
         let existProduct = await productModel.findOne({
@@ -57,7 +57,7 @@ router.post('/', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (re
     }
 });
 
-router.put('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.put('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
     try {
         let id = req.params.id;
         let updatedItem = await inventoryModel.findByIdAndUpdate(id, req.body, {
@@ -69,7 +69,7 @@ router.put('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (
     }
 });
 
-router.delete('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.delete('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
     try {
         let id = req.params.id;
         let deletedItem = await inventoryModel.findByIdAndDelete(id);

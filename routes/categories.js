@@ -28,7 +28,7 @@ router.get('/:id', async function (req, res, next) {
     res.status(404).send({ message: error.message });
   }
 });
-router.post('/', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.post('/', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
   let newCate = new categoryModel({
     name: req.body.name,
     slug: slugify(req.body.name, {
@@ -41,7 +41,7 @@ router.post('/', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (re
   await newCate.save();
   res.send(newCate)
 })
-router.put('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.put('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
   try {
     let id = req.params.id;
     //c1
@@ -70,7 +70,7 @@ router.put('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (
   }
 });
 
-router.delete('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.delete('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
   try {
     let id = req.params.id;
     //c1

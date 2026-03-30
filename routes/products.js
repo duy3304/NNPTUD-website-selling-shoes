@@ -64,9 +64,7 @@ router.get('/:id', async function (req, res, next) {
   }
 });
 
-router.post('/', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
-  let session = await mongoose.startSession();
-  session.startTransaction()
+router.post('/', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
   try {
     let newProduct = new productModel({
       sku: req.body.sku,
@@ -83,22 +81,18 @@ router.post('/', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (re
       brand: req.body.brand,
       images: req.body.images
     });
-    newProduct = await newProduct.save({ session });
+    newProduct = await newProduct.save();
     let newInventory = new inventoryModel({
       product: newProduct._id
     })
-    newInventory = await newInventory.save({ session });
+    newInventory = await newInventory.save();
     newInventory = await newInventory.populate('product')
-    session.commitTransaction();
-    session.endSession()
     res.send(newInventory)
   } catch (error) {
-    session.abortTransaction();
-    session.endSession()
     res.send(error.message)
   }
 })
-router.put('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.put('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
   try {
     let id = req.params.id;
     //c1
@@ -127,7 +121,7 @@ router.put('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (
   }
 });
 
-router.delete('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.delete('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
   try {
     let id = req.params.id;
     //c1

@@ -26,8 +26,26 @@ router.get("/:id", async function (req, res, next) {
 });
 
 
-router.post("/", CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
+router.post("/", CheckLogin, async function (req, res, next) {
     try {
+        let count = await roleModel.countDocuments({});
+        if (count > 0) {
+            let roleOfUser = req.user?.role?.name;
+            if (roleOfUser !== "ADMIN") {
+                if (count === 1) {
+                    let onlyRole = await roleModel.findOne({ isDeleted: false });
+                    if (onlyRole && onlyRole.name === "CUSTOMER" && roleOfUser === "CUSTOMER") {
+                        // allow first user to bootstrap ADMIN/MODERATOR
+                    } else {
+                        res.status(403).send("ban khong co quyen");
+                        return;
+                    }
+                } else {
+                    res.status(403).send("ban khong co quyen");
+                    return;
+                }
+            }
+        }
         let newItem = new roleModel({
             name: req.body.name,
             description: req.body.description

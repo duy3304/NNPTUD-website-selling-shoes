@@ -6,13 +6,14 @@ let { CheckLogin } = require('../utils/authHandler')
 let crypto = require('crypto')
 let { sendMail } = require('../utils/sendMail')
 let cartModel = require('../schemas/carts')
+let roleModel = require('../schemas/roles')
 let mongoose = require('mongoose')
 //login
 router.post('/login', async function (req, res, next) {
     let { username, password } = req.body;
     let result = await userController.QueryLogin(username, password);
     if (!result) {
-        res.status(404).send("thong tin dang nhap khong dung")
+        res.status(401).send("thong tin dang nhap khong dung")
     } else {
         res.cookie("TOKEN_NNPTUD_C3", result, {
             maxAge: 24 * 60 * 60 * 1000,
@@ -23,24 +24,29 @@ router.post('/login', async function (req, res, next) {
     }
 })
 router.post('/register', RegisterValidator, validatedResult, async function (req, res, next) {
-    let session = await mongoose.startSession();
-    let transaction = session.startTransaction()
     try {
         let { username, password, email } = req.body;
+        let defaultRole = await roleModel.findOne({
+            name: 'CUSTOMER',
+            isDeleted: false
+        });
+        if (!defaultRole) {
+            defaultRole = new roleModel({
+                name: 'CUSTOMER',
+                description: 'Default role for registered users'
+            });
+            defaultRole = await defaultRole.save();
+        }
         let newUser = await userController.CreateAnUser(
-            username, password, email, '69b6231b3de61addb401ea26', session
+            username, password, email, defaultRole._id
         )
         let newCart = new cartModel({
             user: newUser._id
         })
-        newCart = await newCart.save({ session })
+        newCart = await newCart.save()
         newCart = await newCart.populate('user')
-        session.commitTransaction()
-        session.endSession()
         res.send(newCart)
     } catch (error) {
-        session.abortTransaction()
-        session.endSession()
         res.status(404).send(error.message)
     }
 })

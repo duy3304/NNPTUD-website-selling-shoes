@@ -28,7 +28,7 @@ router.get('/:id', async function (req, res, next) {
     }
 });
 
-router.post('/', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.post('/', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
     let newItem = new brandModel({
         name: req.body.name,
         slug: slugify(req.body.name, {
@@ -44,7 +44,7 @@ router.post('/', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (re
     res.send(newItem)
 })
 
-router.put('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.put('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
     try {
         let id = req.params.id;
         let updatedItem = await brandModel.findByIdAndUpdate(id, req.body, {
@@ -56,7 +56,7 @@ router.put('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (
     }
 });
 
-router.delete('/:id', CheckLogin, checkRole("ADMIN", "MODERATOR"), async function (req, res, next) {
+router.delete('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
     try {
         let id = req.params.id;
         let updatedItem = await brandModel.findByIdAndUpdate(id, {

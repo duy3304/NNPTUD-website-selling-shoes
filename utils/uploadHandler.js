@@ -1,10 +1,15 @@
 let multer = require('multer')
 let path = require('path')
+let fs = require('fs')
 
 //luu o dau ? luu voi ten la gi?
 let storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/')
+        let uploadRoot = path.join(__dirname, '..', 'uploads');
+        if (!fs.existsSync(uploadRoot)) {
+            fs.mkdirSync(uploadRoot, { recursive: true });
+        }
+        cb(null, uploadRoot)
     },
     filename: function (req, file, cb) {
         let ext = path.extname(file.originalname)

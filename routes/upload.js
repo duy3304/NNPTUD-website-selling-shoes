@@ -11,7 +11,7 @@ let mongoose = require('mongoose')
 let slugify = require('slugify')
 let { CheckLogin, checkRole } = require('../utils/authHandler')
 
-router.post('/one_image', CheckLogin, checkRole("ADMIN", "MODERATOR"), uploadImage.single('file'), function (req, res, next) {
+router.post('/one_image', CheckLogin, checkRole("ADMIN"), uploadImage.single('file'), function (req, res, next) {
     if (!req.file) {
         res.status(404).send({
             message: "file not found"
@@ -25,7 +25,7 @@ router.post('/one_image', CheckLogin, checkRole("ADMIN", "MODERATOR"), uploadIma
         })
     }
 })
-router.post('/multiple_images', CheckLogin, checkRole("ADMIN", "MODERATOR"), uploadImage.array('files', 5), function (req, res, next) {
+router.post('/multiple_images', CheckLogin, checkRole("ADMIN"), uploadImage.array('files', 5), function (req, res, next) {
     if (!req.files) {
         res.status(404).send({
             message: "file not found"
@@ -46,7 +46,7 @@ router.get('/:filename', function (req, res, next) {
     res.sendFile(pathFile)
 })
 
-router.post('/excel', CheckLogin, checkRole("ADMIN", "MODERATOR"), uploadExcel.single('file'), async function (req, res, next) {
+router.post('/excel', CheckLogin, checkRole("ADMIN"), uploadExcel.single('file'), async function (req, res, next) {
     if (!req.file) {
         res.status(404).send({
             message: "file not found"
@@ -103,8 +103,6 @@ router.post('/excel', CheckLogin, checkRole("ADMIN", "MODERATOR"), uploadExcel.s
                 continue;
             }// 
 
-            let session = await mongoose.startSession();
-            session.startTransaction()
             try {
                 let newProduct = new productsModel({
                     sku: sku,
@@ -119,15 +117,13 @@ router.post('/excel', CheckLogin, checkRole("ADMIN", "MODERATOR"), uploadExcel.s
                     description: title,
                     category: categoriesMap.get(category)
                 });
-                newProduct = await newProduct.save({ session });
+                newProduct = await newProduct.save();
                 let newInventory = new inventoryModel({
                     product: newProduct._id,
                     stock: stock
                 })
-                newInventory = await newInventory.save({ session });
+                newInventory = await newInventory.save();
                 newInventory = await newInventory.populate('product')
-                await session.commitTransaction();
-                await session.endSession()
                 getTitle.push(title);
                 getSku.push(sku)
                 result.push({
@@ -135,8 +131,6 @@ router.post('/excel', CheckLogin, checkRole("ADMIN", "MODERATOR"), uploadExcel.s
                     data: newInventory
                 })
             } catch (error) {
-                await session.abortTransaction();
-                await session.endSession()
                 result.push({
                     success: false,
                     data: error.message
