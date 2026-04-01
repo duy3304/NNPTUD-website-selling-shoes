@@ -10,16 +10,22 @@ let { CheckLogin, checkRole } = require('../utils/authHandler')
 router.get('/', async function (req, res, next) {
   let queries = req.query;
   let minPrice = queries.minprice ? queries.minprice : 0;
-  let maxPrice = queries.maxprice ? queries.maxprice : 10000;
+  let maxPrice = queries.maxprice ? queries.maxprice : 10000000;
   let titleQ = queries.title ? queries.title : '';
-  let result = await productModel.find({
+  
+  let findConditions = {
     isDeleted: false,
     title: new RegExp(titleQ, 'i'),
     price: {
       $gte: minPrice,
       $lte: maxPrice
     }
-  }).populate([
+  };
+  
+  if (queries.category) findConditions.category = queries.category;
+  if (queries.brand) findConditions.brand = queries.brand;
+
+  let result = await productModel.find(findConditions).populate([
     {
       path: 'category',
       select: 'name'

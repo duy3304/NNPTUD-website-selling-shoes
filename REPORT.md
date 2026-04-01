@@ -104,7 +104,15 @@ Da tao file collection de test: `postman_collection.json`.
 
 ## Frontend
 - Frontend thu cong su dung HTML/CSS/JS trong thu muc `public`.
-- Chuc nang: dang nhap, xem san pham, them vao gio, tao reservation, CRUD categories/brands/products, upload anh/excel.
+- Cac trang:
+  - `/index.html`: trang chu
+  - `/login.html`: dang nhap
+  - `/register.html`: dang ky
+  - `/products.html`: danh sach san pham
+  - `/product-detail.html?id=<id>`: chi tiet san pham
+  - `/cart.html`: gio hang
+  - `/admin.html`: trang admin (chi ADMIN)
+- Chuc nang: dang nhap, dang ky, xem san pham, them vao gio, tao reservation, CRUD categories/brands/products, upload anh/excel.
 
 ## Chup anh Postman
 Vui long chup anh cac chuc nang sau (lay tu collection):
