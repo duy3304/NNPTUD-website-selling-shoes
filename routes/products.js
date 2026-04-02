@@ -85,17 +85,23 @@ router.post('/', CheckLogin, checkRole("ADMIN"), async function (req, res, next)
       description: req.body.description,
       category: req.body.category,
       brand: req.body.brand,
-      images: req.body.images
+      images: req.body.images,
+      sizes: Array.isArray(req.body.sizes) ? req.body.sizes : []
     });
     newProduct = await newProduct.save();
+    let totalStock = 0;
+    if (Array.isArray(newProduct.sizes)) {
+      totalStock = newProduct.sizes.reduce((sum, s) => sum + (Number(s.stock) || 0), 0);
+    }
     let newInventory = new inventoryModel({
-      product: newProduct._id
+      product: newProduct._id,
+      stock: totalStock
     })
     newInventory = await newInventory.save();
     newInventory = await newInventory.populate('product')
     res.send(newInventory)
   } catch (error) {
-    res.send(error.message)
+    res.status(400).send({ message: error.message })
   }
 })
 router.put('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, next) {
@@ -121,6 +127,10 @@ router.put('/:id', CheckLogin, checkRole("ADMIN"), async function (req, res, nex
     let updatedItem = await productModel.findByIdAndUpdate(id, req.body, {
       new: true
     });
+    if (req.body.sizes && Array.isArray(req.body.sizes)) {
+      let totalStock = req.body.sizes.reduce((sum, s) => sum + (Number(s.stock) || 0), 0);
+      await inventoryModel.findOneAndUpdate({ product: id }, { stock: totalStock }, { new: true });
+    }
     res.send(updatedItem)
   } catch (error) {
     res.status(404).send({ message: error.message });

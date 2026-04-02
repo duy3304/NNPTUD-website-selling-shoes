@@ -63,24 +63,25 @@ router.post('/', CheckLogin, async function (req, res, next) {
             if (!product) {
                 throw new Error("product not found");
             }
-            let inventory = await inventoryModel.findOne({
-                product: product._id
-            })
-            if (!inventory || inventory.stock < item.quantity) {
+            if (!item.size) {
+                throw new Error("size is required");
+            }
+            let sizeEntry = (product.sizes || []).find(s => String(s.size) === String(item.size));
+            if (!sizeEntry || sizeEntry.stock < item.quantity) {
                 throw new Error("product khong con du hang");
             }
             let subtotal = product.price * item.quantity;
             amount += subtotal;
             resultItems.push({
                 product: product._id,
+                size: item.size,
                 title: product.title,
                 quantity: item.quantity,
                 price: product.price,
                 subtotal: subtotal
             })
-            inventory.stock -= item.quantity;
-            inventory.reserved += item.quantity;
-            await inventory.save()
+            sizeEntry.stock -= item.quantity;
+            await product.save()
         }
         let newReservation = new reservationModel({
             user: user._id,

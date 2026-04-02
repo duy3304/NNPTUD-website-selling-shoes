@@ -28,6 +28,22 @@ let productSchema = new mongoose.Schema({
         type: [String],
         default: ["https://i.imgur.com/ZANVnHE.jpeg"]
     },
+    sizes: {
+        type: [
+            {
+                size: {
+                    type: String,
+                    required: true
+                },
+                stock: {
+                    type: Number,
+                    min: [0, "stock khong duoc nho hon 0"],
+                    default: 0
+                }
+            }
+        ],
+        default: []
+    },
     brand: {
         type: mongoose.Types.ObjectId,
         ref: 'brand'

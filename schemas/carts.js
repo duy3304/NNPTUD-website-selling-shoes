@@ -4,6 +4,10 @@ let itemCart = mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: 'product'
     },
+    size: {
+        type: String,
+        required: true
+    },
     quantity: {
         type: Number,
         min: 1

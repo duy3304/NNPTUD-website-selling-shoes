@@ -15,6 +15,15 @@ const setToken = (token) => {
   else localStorage.removeItem("token");
 };
 
+const logoutUser = async () => {
+  try {
+    await api("/api/v1/auth/logout", { method: "POST", auth: true });
+  } catch (err) {
+    // ignore logout errors
+  }
+  setToken("");
+};
+
 const logStatus = (message) => {
   if (!statusLog) return;
   const time = new Date().toLocaleTimeString();
@@ -66,25 +75,33 @@ const updateAuthStatus = async () => {
 
 const updateTopbar = async () => {
   const topUser = document.getElementById("top-user");
-  const topLogout = document.getElementById("top-logout");
-  const loginLink = document.querySelector('.auth-actions a[href="/login.html"]');
-  const registerLink = document.querySelector('.auth-actions a[href="/register.html"]');
-  if (!topUser || !topLogout || !loginLink || !registerLink) return;
+  const topAuthBtn = document.getElementById("top-auth-btn");
+  const adminLink = document.querySelector('.auth-actions a[href="/admin.html"]');
+  if (!topUser || !topAuthBtn) return;
   try {
     const me = await api("/api/v1/auth/me", { auth: true });
     topUser.textContent = me.username;
-    topLogout.classList.remove("hidden");
-    loginLink.classList.add("hidden");
-    registerLink.classList.add("hidden");
-    topLogout.onclick = () => {
-      setToken("");
-      window.location.href = "/index.html";
+    topAuthBtn.classList.remove("hidden");
+    topAuthBtn.textContent = "Dang xuat";
+    if (adminLink) {
+      if (me.role?.name === "ADMIN") adminLink.classList.remove("hidden");
+      else adminLink.classList.add("hidden");
+    }
+    topAuthBtn.onclick = () => {
+      logoutUser().finally(() => {
+        topUser.textContent = "";
+        if (adminLink) adminLink.classList.add("hidden");
+        window.location.href = "/index.html";
+      });
     };
   } catch (err) {
     topUser.textContent = "";
-    topLogout.classList.add("hidden");
-    loginLink.classList.remove("hidden");
-    registerLink.classList.remove("hidden");
+    topAuthBtn.classList.remove("hidden");
+    topAuthBtn.textContent = "Dang nhap";
+    if (adminLink) adminLink.classList.add("hidden");
+    topAuthBtn.onclick = () => {
+      window.location.href = "/login.html";
+    };
   }
 };
 
@@ -103,10 +120,11 @@ const bindAuthButtons = () => {
   }
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
-      setToken("");
-      logStatus("Da dang xuat");
-      updateAuthStatus();
-      updateTopbar();
+      logoutUser().finally(() => {
+        logStatus("Da dang xuat");
+        updateAuthStatus();
+        updateTopbar();
+      });
     });
   }
 };
@@ -183,6 +201,7 @@ const loadProducts = async () => {
     return;
   }
   data.forEach((item) => {
+    const sizeOptions = (item.sizes || []).map(s => `<option value="${s.size}">${s.size}</option>`).join("");
     const card = document.createElement("div");
     card.className = "col-md-4";
     card.innerHTML = `
@@ -217,16 +236,27 @@ const loadProducts = async () => {
                   </li>
               </ul>
               <p class="text-center mb-0">$${item.price}</p>
-              <input type="hidden" value="1" class="qty-input" />
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                  <select class="form-select form-select-sm size-select">
+                      ${sizeOptions || '<option value="">Khong co size</option>'}
+                  </select>
+                  <input type="hidden" value="1" class="qty-input" />
+              </div>
           </div>
       </div>
     `;
     const btn = card.querySelector(".add-to-cart-btn");
     const qtyInput = card.querySelector(".qty-input");
+    const sizeSelect = card.querySelector(".size-select");
     btn.addEventListener("click", async () => {
       try {
         if (!getToken()) {
           redirectToLogin();
+          return;
+        }
+        const size = sizeSelect ? sizeSelect.value : "";
+        if (!size) {
+          logStatus("Vui long chon size");
           return;
         }
         await api("/api/v1/carts/add", {
@@ -235,6 +265,7 @@ const loadProducts = async () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             product: item._id,
+            size: size,
             quantity: Number(qtyInput.value || 1)
           })
         });
@@ -259,6 +290,9 @@ const loadProductDetail = async () => {
   try {
     const item = await api(`/api/v1/products/${id}`);
     const imgUrl = item.images && item.images[0] ? item.images[0] : '/assets/img/product_single_10.jpg';
+    const sizes = item.sizes || [];
+    const sizeOptions = sizes.map(s => `<option value="${s.size}" data-stock="${s.stock}">${s.size}</option>`).join("");
+    const firstStock = sizes.length ? sizes[0].stock : 0;
     detailEl.innerHTML = `
       <div class="row">
           <div class="col-lg-5 mt-5">
@@ -290,6 +324,13 @@ const loadProductDetail = async () => {
                               <p class="text-muted"><strong>${item.category?.name || "N/A"}</strong></p>
                           </li>
                       </ul>
+                      <div class="mb-3">
+                          <label class="form-label">Size</label>
+                          <select class="form-select" id="detail-size">
+                              ${sizeOptions || '<option value="">Khong co size</option>'}
+                          </select>
+                      </div>
+                      <p class="text-muted">So luong con: <span id="detail-stock">${firstStock}</span></p>
 
                       <div class="row pb-3 mt-4">
                           <div class="col d-grid">
@@ -302,6 +343,14 @@ const loadProductDetail = async () => {
           </div>
       </div>
     `;
+    const sizeSelect = document.getElementById("detail-size");
+    const stockEl = document.getElementById("detail-stock");
+    if (sizeSelect && stockEl) {
+      sizeSelect.addEventListener("change", () => {
+        const opt = sizeSelect.options[sizeSelect.selectedIndex];
+        stockEl.textContent = opt ? opt.dataset.stock || "0" : "0";
+      });
+    }
     document.getElementById("detail-add").addEventListener("click", async () => {
       try {
         if (!getToken()) {
@@ -309,11 +358,16 @@ const loadProductDetail = async () => {
           return;
         }
         const quantity = Number(document.getElementById("detail-qty").value || 1);
+        const size = sizeSelect ? sizeSelect.value : "";
+        if (!size) {
+          logStatus("Vui long chon size");
+          return;
+        }
         await api("/api/v1/carts/add", {
           method: "POST",
           auth: true,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ product: item._id, quantity })
+          body: JSON.stringify({ product: item._id, size: size, quantity })
         });
         window.location.href = '/cart.html';
       } catch (err) {
@@ -328,27 +382,82 @@ const loadProductDetail = async () => {
 const loadCart = async () => {
   updateTopbar();
   const cartItemsEl = document.getElementById("cart-items");
+  const cartEmptyEl = document.getElementById("cart-empty");
+  const subtotalEl = document.getElementById("cart-subtotal");
+  const totalEl = document.getElementById("cart-total");
   const data = await api("/api/v1/carts", { auth: true });
   cartItemsEl.innerHTML = "";
   if (!data.length) {
-    cartItemsEl.textContent = "Gio hang trong";
+    if (cartEmptyEl) cartEmptyEl.textContent = "Gio hang trong";
+    if (subtotalEl) subtotalEl.textContent = "$0";
+    if (totalEl) totalEl.textContent = "$0";
     return;
   }
+  if (cartEmptyEl) cartEmptyEl.textContent = "";
+  let subtotal = 0;
   data.forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "list-row";
+    const product = item.product || {};
+    const productId = product._id || item.product;
+    const price = Number(product.price) || 0;
+    const lineTotal = price * item.quantity;
+    subtotal += lineTotal;
+    const img = product.images && product.images[0] ? product.images[0] : "/assets/img/shop_01.jpg";
+    const row = document.createElement("tr");
     row.innerHTML = `
-      <span>${item.product}</span>
-      <span>x ${item.quantity}</span>
-      <button class="btn ghost">Giam 1</button>
+      <td>
+        <div class="d-flex align-items-center">
+          <img src="${img}" alt="" style="width:64px;height:64px;object-fit:cover" class="rounded me-3">
+          <div>
+            <div class="fw-bold">${product.title || item.product}</div>
+            <small class="text-muted">ID: ${product._id || item.product}</small>
+          </div>
+        </div>
+      </td>
+      <td>${item.size}</td>
+      <td>$${price}</td>
+      <td>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-outline-secondary qty-minus">-</button>
+          <span class="fw-bold">${item.quantity}</span>
+          <button class="btn btn-sm btn-outline-secondary qty-plus">+</button>
+        </div>
+      </td>
+      <td>$${lineTotal}</td>
+      <td><button class="btn btn-sm btn-outline-danger qty-remove">Xoa 1</button></td>
     `;
-    row.querySelector("button").addEventListener("click", async () => {
+    row.querySelector(".qty-minus").addEventListener("click", async () => {
       try {
         await api("/api/v1/carts/remove", {
           method: "POST",
           auth: true,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ product: item.product, quantity: 1 })
+          body: JSON.stringify({ product: productId, size: item.size, quantity: 1 })
+        });
+        await loadCart();
+      } catch (err) {
+        logStatus(err.message);
+      }
+    });
+    row.querySelector(".qty-plus").addEventListener("click", async () => {
+      try {
+        await api("/api/v1/carts/add", {
+          method: "POST",
+          auth: true,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ product: productId, size: item.size, quantity: 1 })
+        });
+        await loadCart();
+      } catch (err) {
+        logStatus(err.message);
+      }
+    });
+    row.querySelector(".qty-remove").addEventListener("click", async () => {
+      try {
+        await api("/api/v1/carts/remove", {
+          method: "POST",
+          auth: true,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ product: productId, size: item.size, quantity: item.quantity })
         });
         await loadCart();
       } catch (err) {
@@ -357,6 +466,8 @@ const loadCart = async () => {
     });
     cartItemsEl.appendChild(row);
   });
+  if (subtotalEl) subtotalEl.textContent = `$${subtotal}`;
+  if (totalEl) totalEl.textContent = `$${subtotal}`;
 };
 
 const createReservationFromCart = async () => {
@@ -366,7 +477,7 @@ const createReservationFromCart = async () => {
     return;
   }
   const payload = {
-    items: items.map((i) => ({ product: i.product, quantity: i.quantity })),
+    items: items.map((i) => ({ product: i.product, size: i.size, quantity: i.quantity })),
     expiredIn: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
   };
   const result = await api("/api/v1/reservations", {
@@ -388,11 +499,7 @@ const loadAdmin = async () => {
     }
     const me = await api("/api/v1/auth/me", { auth: true });
     if (me.role?.name !== "ADMIN") {
-      adminStatus.textContent = "Khong du quyen ADMIN";
-      const sections = document.getElementById("admin-sections");
-      const sections2 = document.getElementById("admin-sections-2");
-      if (sections) sections.classList.add("hidden");
-      if (sections2) sections2.classList.add("hidden");
+      window.location.href = "/index.html";
       return;
     }
     adminStatus.textContent = `Xin chao ${me.username} (ADMIN)`;
@@ -403,13 +510,29 @@ const loadAdmin = async () => {
 
   const categoriesEl = document.getElementById("categories");
   const brandsEl = document.getElementById("brands");
+  const productsAdminEl = document.getElementById("products-admin");
+  const loadProductsBtn = document.getElementById("load-products-admin");
   const productCategorySelect = document.getElementById("product-category");
   const productBrandSelect = document.getElementById("product-brand");
   const uploadResultEl = document.getElementById("upload-result");
 
   const loadCategories = async () => {
     const data = await api("/api/v1/categories");
-    renderList(categoriesEl, data, (item) => `${item._id} - ${item.name}`);
+    if (categoriesEl) {
+      categoriesEl.innerHTML = data.map((item) => `
+        <div class="d-flex justify-content-between align-items-center border-bottom py-1">
+          <span>${item.name}</span>
+          <button class="btn btn-sm btn-outline-secondary" data-id="${item._id}" data-name="${item.name}">Chon</button>
+        </div>
+      `).join("");
+      categoriesEl.querySelectorAll("button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById("category-id").value = btn.dataset.id;
+          document.getElementById("category-id-delete").value = btn.dataset.id;
+          document.getElementById("category-name-update").value = btn.dataset.name;
+        });
+      });
+    }
     productCategorySelect.innerHTML = "";
     data.forEach((item) => {
       const option = document.createElement("option");
@@ -421,7 +544,23 @@ const loadAdmin = async () => {
 
   const loadBrands = async () => {
     const data = await api("/api/v1/brands");
-    renderList(brandsEl, data, (item) => `${item._id} - ${item.name}`);
+    if (brandsEl) {
+      brandsEl.innerHTML = data.map((item) => `
+        <div class="d-flex justify-content-between align-items-center border-bottom py-1">
+          <span>${item.name}</span>
+          <button class="btn btn-sm btn-outline-secondary" data-id="${item._id}" data-name="${item.name}" data-logo="${item.logo || ""}" data-desc="${item.description || ""}">Chon</button>
+        </div>
+      `).join("");
+      brandsEl.querySelectorAll("button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById("brand-id").value = btn.dataset.id;
+          document.getElementById("brand-id-delete").value = btn.dataset.id;
+          document.getElementById("brand-name-update").value = btn.dataset.name || "";
+          document.getElementById("brand-logo-update").value = btn.dataset.logo || "";
+          document.getElementById("brand-desc-update").value = btn.dataset.desc;
+        });
+      });
+    }
     productBrandSelect.innerHTML = "<option value=''>Khong co</option>";
     data.forEach((item) => {
       const option = document.createElement("option");
@@ -430,6 +569,45 @@ const loadAdmin = async () => {
       productBrandSelect.appendChild(option);
     });
   };
+
+  async function loadProductsAdmin() {
+    if (!productsAdminEl) return;
+    productsAdminEl.textContent = "Dang tai san pham...";
+    try {
+      const data = await api("/api/v1/products");
+      if (!data.length) {
+        productsAdminEl.textContent = "Chua co san pham";
+        return;
+      }
+      productsAdminEl.innerHTML = data.map((item) => {
+        const sizes = (item.sizes || []).map(s => `${s.size}:${s.stock}`).join(", ");
+        return `
+          <div class="d-flex justify-content-between align-items-center border-bottom py-1">
+            <div>
+              <div class="fw-bold">${item.title} <span class="text-muted">($${item.price})</span></div>
+              <small class="text-muted">Size: ${sizes || "N/A"} | ID: ${item._id}</small>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" data-id="${item._id}" data-title="${item.title}" data-price="${item.price}">Chon</button>
+          </div>
+        `;
+      }).join("");
+      productsAdminEl.querySelectorAll("button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById("product-id").value = btn.dataset.id;
+          document.getElementById("product-id-delete").value = btn.dataset.id;
+          document.getElementById("product-title-update").value = btn.dataset.title;
+          document.getElementById("product-price-update").value = btn.dataset.price;
+        });
+      });
+    } catch (err) {
+      productsAdminEl.textContent = "Loi tai san pham";
+      logStatus(err.message);
+    }
+  }
+
+  if (loadProductsBtn) {
+    loadProductsBtn.addEventListener("click", () => loadProductsAdmin());
+  }
 
   document.getElementById("category-create").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -501,12 +679,18 @@ const loadAdmin = async () => {
     event.preventDefault();
     const id = document.getElementById("brand-id").value.trim();
     const description = document.getElementById("brand-desc-update").value.trim();
+    const name = document.getElementById("brand-name-update").value.trim();
+    const logo = document.getElementById("brand-logo-update").value.trim();
+    const payload = {};
+    if (description) payload.description = description;
+    if (name) payload.name = name;
+    if (logo) payload.logo = logo;
     try {
       await api(`/api/v1/brands/${id}`, {
         method: "PUT",
         auth: true,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description })
+        body: JSON.stringify(payload)
       });
       logStatus("Da cap nhat thuong hieu");
       await loadBrands();
@@ -532,19 +716,30 @@ const loadAdmin = async () => {
     const sku = document.getElementById("product-sku").value.trim();
     const title = document.getElementById("product-title").value.trim();
     const price = Number(document.getElementById("product-price").value);
+    const sizesRaw = document.getElementById("product-sizes").value.trim();
     const description = document.getElementById("product-desc").value.trim();
     const imagesRaw = document.getElementById("product-images").value.trim();
     const category = productCategorySelect.value;
     const brand = productBrandSelect.value || undefined;
     const images = imagesRaw ? imagesRaw.split(",").map((i) => i.trim()).filter(Boolean) : [];
+    const sizes = sizesRaw
+      ? sizesRaw.split(",").map((pair) => {
+          const [size, stock] = pair.split(":").map((v) => v.trim());
+          return { size: size, stock: Number(stock) || 0 };
+        }).filter((s) => s.size)
+      : [];
     try {
-      await api("/api/v1/products", {
+      const created = await api("/api/v1/products", {
         method: "POST",
         auth: true,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sku, title, price, description, images, category, brand })
+        body: JSON.stringify({ sku, title, price, description, images, category, brand, sizes })
       });
+      if (!created || !created.product) {
+        throw new Error("Tao san pham that bai");
+      }
       logStatus("Da tao san pham");
+      await loadProductsAdmin();
     } catch (err) {
       logStatus(err.message);
     }
@@ -555,9 +750,16 @@ const loadAdmin = async () => {
     const id = document.getElementById("product-id").value.trim();
     const price = document.getElementById("product-price-update").value.trim();
     const title = document.getElementById("product-title-update").value.trim();
+    const sizesRaw = document.getElementById("product-sizes-update").value.trim();
     const payload = {};
     if (price) payload.price = Number(price);
     if (title) payload.title = title;
+    if (sizesRaw) {
+      payload.sizes = sizesRaw.split(",").map((pair) => {
+        const [size, stock] = pair.split(":").map((v) => v.trim());
+        return { size: size, stock: Number(stock) || 0 };
+      }).filter((s) => s.size);
+    }
     try {
       await api(`/api/v1/products/${id}`, {
         method: "PUT",
@@ -566,6 +768,7 @@ const loadAdmin = async () => {
         body: JSON.stringify(payload)
       });
       logStatus("Da cap nhat san pham");
+      await loadProductsAdmin();
     } catch (err) {
       logStatus(err.message);
     }
@@ -577,6 +780,7 @@ const loadAdmin = async () => {
     try {
       await api(`/api/v1/products/${id}`, { method: "DELETE", auth: true });
       logStatus("Da xoa san pham");
+      await loadProductsAdmin();
     } catch (err) {
       logStatus(err.message);
     }
@@ -641,6 +845,7 @@ const loadAdmin = async () => {
 
   await loadCategories();
   await loadBrands();
+  await loadProductsAdmin();
 };
 
 const bindLogin = () => {
@@ -662,6 +867,8 @@ const bindLogin = () => {
       const next = getNextUrl();
       if (next) {
         window.location.href = next;
+      } else {
+        window.location.href = "/index.html";
       }
     } catch (err) {
       logStatus(err.message);
@@ -743,10 +950,8 @@ const bindCartPage = () => {
     redirectToLogin();
     return;
   }
-  const loadBtn = document.getElementById("load-cart");
-  const createBtn = document.getElementById("create-reservation");
-  if (loadBtn) loadBtn.addEventListener("click", () => loadCart().catch((e) => logStatus(e.message)));
-  if (createBtn) createBtn.addEventListener("click", () => createReservationFromCart().catch((e) => logStatus(e.message)));
+  const checkoutBtn = document.getElementById("checkout-btn");
+  if (checkoutBtn) checkoutBtn.addEventListener("click", () => createReservationFromCart().catch((e) => logStatus(e.message)));
   loadCart().catch((e) => logStatus(e.message));
 };
 

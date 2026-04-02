@@ -4,6 +4,10 @@ let reservationItemSchema = mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: 'product'
     },
+    size: {
+        type: String,
+        required: true
+    },
     title: {
         type: String,
         required: true
