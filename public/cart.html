@@ -75,6 +75,9 @@ https://templatemo.com/tm-559-zay-shop
                         <li class="nav-item">
                             <a class="nav-link" href="/contact.html">Liên hệ</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/history.html">Lịch sử</a>
+                        </li>
                     </ul>
                 </div>
                 
@@ -139,19 +142,35 @@ https://templatemo.com/tm-559-zay-shop
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <h5 class="mb-3">Tong cong</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Ho va ten</label>
+                            <input id="shipping-name" class="form-control" placeholder="Nhap ho ten nguoi nhan">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">So dien thoai</label>
+                            <input id="shipping-phone" class="form-control" placeholder="Nhap so dien thoai">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Dia chi giao hang</label>
+                            <textarea id="shipping-address" class="form-control" rows="3" placeholder="Nhap dia chi giao hang"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Ghi chu</label>
+                            <textarea id="shipping-note" class="form-control" rows="2" placeholder="Vi du: giao gio hanh chinh"></textarea>
+                        </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Tam tinh</span>
-                            <strong id="cart-subtotal">$0</strong>
+                            <strong id="cart-subtotal">0 ₫</strong>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span>Phi giao hang</span>
-                            <strong>$0</strong>
+                            <strong>0 ₫</strong>
                         </div>
                         <div class="d-flex justify-content-between border-top pt-2">
                             <span>Tong</span>
-                            <strong id="cart-total">$0</strong>
+                            <strong id="cart-total">0 ₫</strong>
                         </div>
-                        <button id="checkout-btn" class="btn btn-success w-100 mt-3">Thanh toan</button>
+                        <button id="checkout-btn" class="btn btn-success w-100 mt-3">Thanh toan MoMo</button>
                     </div>
                 </div>
             </div>

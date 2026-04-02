@@ -44,7 +44,35 @@ let reservationSchema = mongoose.Schema({
     amount: {
         type: Number,
         min: 0
-    }
+    },
+    shippingAddress: {
+        type: String,
+        default: ""
+    },
+    shippingName: {
+        type: String,
+        default: ""
+    },
+    shippingPhone: {
+        type: String,
+        default: ""
+    },
+    shippingNote: {
+        type: String,
+        default: ""
+    },
+    paymentMethod: {
+        type: String,
+        default: "COD"
+    },
+    paymentStatus: {
+        type: String,
+        enum: ["PENDING", "PAID", "FAILED"],
+        default: "PENDING"
+    },
+    momoOrderId: String,
+    momoRequestId: String,
+    momoTransId: String
 }, {
     timestamps: true
 })

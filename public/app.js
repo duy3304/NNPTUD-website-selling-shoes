@@ -15,6 +15,11 @@ const setToken = (token) => {
   else localStorage.removeItem("token");
 };
 
+const formatVnd = (value) => {
+  const amount = Number(value) || 0;
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+};
+
 const logoutUser = async () => {
   try {
     await api("/api/v1/auth/logout", { method: "POST", auth: true });
@@ -154,7 +159,7 @@ const loadHome = async () => {
                           <i class="text-warning fa fa-star"></i>
                           <i class="text-warning fa fa-star"></i>
                       </li>
-                      <li class="text-muted text-right">$${item.price}</li>
+                      <li class="text-muted text-right">${formatVnd(item.price)}</li>
                   </ul>
                   <a href="/product-detail.html?id=${item._id}" class="h2 text-decoration-none text-dark">${item.title}</a>
                   <p class="card-text">
@@ -235,7 +240,7 @@ const loadProducts = async () => {
                       <i class="text-warning fa fa-star"></i>
                   </li>
               </ul>
-              <p class="text-center mb-0">$${item.price}</p>
+              <p class="text-center mb-0">${formatVnd(item.price)}</p>
               <div class="d-flex justify-content-between align-items-center mt-2">
                   <select class="form-select form-select-sm size-select">
                       ${sizeOptions || '<option value="">Khong co size</option>'}
@@ -304,7 +309,7 @@ const loadProductDetail = async () => {
               <div class="card">
                   <div class="card-body">
                       <h1 class="h2">${item.title}</h1>
-                      <p class="h3 py-2">$${item.price}</p>
+                      <p class="h3 py-2">${formatVnd(item.price)}</p>
                       <ul class="list-inline">
                           <li class="list-inline-item">
                               <h6>Brand:</h6>
@@ -389,8 +394,8 @@ const loadCart = async () => {
   cartItemsEl.innerHTML = "";
   if (!data.length) {
     if (cartEmptyEl) cartEmptyEl.textContent = "Gio hang trong";
-    if (subtotalEl) subtotalEl.textContent = "$0";
-    if (totalEl) totalEl.textContent = "$0";
+    if (subtotalEl) subtotalEl.textContent = formatVnd(0);
+    if (totalEl) totalEl.textContent = formatVnd(0);
     return;
   }
   if (cartEmptyEl) cartEmptyEl.textContent = "";
@@ -414,7 +419,7 @@ const loadCart = async () => {
         </div>
       </td>
       <td>${item.size}</td>
-      <td>$${price}</td>
+      <td>${formatVnd(price)}</td>
       <td>
         <div class="d-flex align-items-center gap-2">
           <button class="btn btn-sm btn-outline-secondary qty-minus">-</button>
@@ -422,7 +427,7 @@ const loadCart = async () => {
           <button class="btn btn-sm btn-outline-secondary qty-plus">+</button>
         </div>
       </td>
-      <td>$${lineTotal}</td>
+      <td>${formatVnd(lineTotal)}</td>
       <td><button class="btn btn-sm btn-outline-danger qty-remove">Xoa 1</button></td>
     `;
     row.querySelector(".qty-minus").addEventListener("click", async () => {
@@ -466,8 +471,8 @@ const loadCart = async () => {
     });
     cartItemsEl.appendChild(row);
   });
-  if (subtotalEl) subtotalEl.textContent = `$${subtotal}`;
-  if (totalEl) totalEl.textContent = `$${subtotal}`;
+  if (subtotalEl) subtotalEl.textContent = formatVnd(subtotal);
+  if (totalEl) totalEl.textContent = formatVnd(subtotal);
 };
 
 const createReservationFromCart = async () => {
@@ -476,9 +481,25 @@ const createReservationFromCart = async () => {
     logStatus("Gio hang trong");
     return;
   }
+  const addressEl = document.getElementById("shipping-address");
+  const nameEl = document.getElementById("shipping-name");
+  const phoneEl = document.getElementById("shipping-phone");
+  const noteEl = document.getElementById("shipping-note");
+  const shippingAddress = addressEl ? addressEl.value.trim() : "";
+  const shippingName = nameEl ? nameEl.value.trim() : "";
+  const shippingPhone = phoneEl ? phoneEl.value.trim() : "";
+  const shippingNote = noteEl ? noteEl.value.trim() : "";
+  if (!shippingName || !shippingPhone || !shippingAddress) {
+    logStatus("Vui long nhap ho ten, so dien thoai va dia chi giao hang");
+    return;
+  }
   const payload = {
     items: items.map((i) => ({ product: i.product, size: i.size, quantity: i.quantity })),
-    expiredIn: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+    expiredIn: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    shippingAddress: shippingAddress,
+    shippingName: shippingName,
+    shippingPhone: shippingPhone,
+    shippingNote: shippingNote
   };
   const result = await api("/api/v1/reservations", {
     method: "POST",
@@ -487,6 +508,7 @@ const createReservationFromCart = async () => {
     body: JSON.stringify(payload)
   });
   logStatus(`Da tao reservation: ${result._id}`);
+  return result;
 };
 
 const loadAdmin = async () => {
@@ -584,7 +606,7 @@ const loadAdmin = async () => {
         return `
           <div class="d-flex justify-content-between align-items-center border-bottom py-1">
             <div>
-              <div class="fw-bold">${item.title} <span class="text-muted">($${item.price})</span></div>
+              <div class="fw-bold">${item.title} <span class="text-muted">(${formatVnd(item.price)})</span></div>
               <small class="text-muted">Size: ${sizes || "N/A"} | ID: ${item._id}</small>
             </div>
             <button class="btn btn-sm btn-outline-secondary" data-id="${item._id}" data-title="${item.title}" data-price="${item.price}">Chon</button>
@@ -951,8 +973,109 @@ const bindCartPage = () => {
     return;
   }
   const checkoutBtn = document.getElementById("checkout-btn");
-  if (checkoutBtn) checkoutBtn.addEventListener("click", () => createReservationFromCart().catch((e) => logStatus(e.message)));
+  if (checkoutBtn) checkoutBtn.addEventListener("click", async () => {
+    try {
+      const reservation = await createReservationFromCart();
+      if (!reservation || !reservation._id) return;
+      const momo = await api("/api/v1/payments/momo/create", {
+        method: "POST",
+        auth: true,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reservationId: reservation._id })
+      });
+      if (momo && momo.payUrl) {
+        window.location.href = momo.payUrl;
+      }
+    } catch (err) {
+      logStatus(err.message);
+    }
+  });
   loadCart().catch((e) => logStatus(e.message));
+};
+
+const loadHistory = async () => {
+  updateTopbar();
+  if (!getToken()) {
+    redirectToLogin();
+    return;
+  }
+  const msgEl = document.getElementById("history-msg");
+  const itemsEl = document.getElementById("history-items");
+  const emptyEl = document.getElementById("history-empty");
+  const params = new URLSearchParams(window.location.search);
+  if (msgEl) {
+    if (params.get("momo") === "success") msgEl.textContent = "Thanh toan MoMo thanh cong.";
+    else if (params.get("momo") === "failed") msgEl.textContent = "Thanh toan MoMo that bai.";
+    else msgEl.textContent = "";
+  }
+  try {
+    const data = await api("/api/v1/reservations/me", { auth: true });
+    itemsEl.innerHTML = "";
+    if (!data.length) {
+      if (emptyEl) emptyEl.textContent = "Chua co don hang";
+      return;
+    }
+    if (emptyEl) emptyEl.textContent = "";
+    data.forEach((order) => {
+      const itemsHtml = (order.items || []).map(i => `
+        <tr>
+          <td>${i.title}</td>
+          <td>${i.size}</td>
+          <td>${i.quantity}</td>
+          <td>${formatVnd(i.price)}</td>
+          <td>${formatVnd(i.subtotal)}</td>
+        </tr>
+      `).join("");
+      const card = document.createElement("div");
+      card.className = "card border-0 shadow-sm";
+      card.innerHTML = `
+        <div class="card-body">
+          <div class="d-flex justify-content-between flex-wrap gap-2">
+            <div>
+              <div class="fw-bold">Ma don: ${order._id}</div>
+              <div class="text-muted small">Ngay: ${new Date(order.createdAt).toLocaleString()}</div>
+            </div>
+            <div class="text-end">
+              <div class="badge bg-success">${order.paymentStatus || order.status}</div>
+              <div class="small text-muted mt-1">Phuong thuc: ${order.paymentMethod || "COD"}</div>
+            </div>
+          </div>
+          <div class="row mt-3 g-3">
+            <div class="col-md-6">
+              <h6 class="mb-2">Thong tin giao hang</h6>
+              <div>Ho ten: ${order.shippingName || "-"}</div>
+              <div>So dien thoai: ${order.shippingPhone || "-"}</div>
+              <div>Dia chi: ${order.shippingAddress || "-"}</div>
+              <div>Ghi chu: ${order.shippingNote || "-"}</div>
+            </div>
+            <div class="col-md-6">
+              <h6 class="mb-2">Thanh toan</h6>
+              <div>Tong tien: <strong>${formatVnd(order.amount)}</strong></div>
+            </div>
+          </div>
+          <div class="table-responsive mt-3">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>San pham</th>
+                  <th>Size</th>
+                  <th>So luong</th>
+                  <th>Gia</th>
+                  <th>Tam tinh</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml || `<tr><td colspan="5" class="text-muted">Khong co san pham</td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      itemsEl.appendChild(card);
+    });
+  } catch (err) {
+    logStatus(err.message);
+  }
 };
 
 if (page === "home") {
@@ -969,4 +1092,6 @@ if (page === "home") {
   bindCartPage();
 } else if (page === "admin") {
   loadAdmin();
+} else if (page === "history") {
+  loadHistory();
 }

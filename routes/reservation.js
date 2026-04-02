@@ -83,12 +83,20 @@ router.post('/', CheckLogin, async function (req, res, next) {
             sizeEntry.stock -= item.quantity;
             await product.save()
         }
+        const shippingAddress = (req.body.shippingAddress || "").trim();
+        const shippingName = (req.body.shippingName || "").trim();
+        const shippingPhone = (req.body.shippingPhone || "").trim();
+        const shippingNote = (req.body.shippingNote || "").trim();
         let newReservation = new reservationModel({
             user: user._id,
             items: resultItems,
             status: "actived",
             expiredIn: req.body.expiredIn,
-            amount: amount
+            amount: amount,
+            shippingAddress: shippingAddress,
+            shippingName: shippingName,
+            shippingPhone: shippingPhone,
+            shippingNote: shippingNote
         })
         newReservation = await newReservation.save()
         res.send(newReservation)

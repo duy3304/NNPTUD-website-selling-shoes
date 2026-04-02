@@ -4,6 +4,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 let mongoose = require('mongoose')
+require('dotenv').config();
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -31,6 +32,7 @@ app.use('/api/v1/upload', require('./routes/upload'));
 app.use('/api/v1/brands', require('./routes/brands'));
 app.use('/api/v1/inventories', require('./routes/inventories'));
 app.use('/api/v1/reservations', require('./routes/reservation'));
+app.use('/api/v1/payments', require('./routes/payments'));
 mongoose.connect('mongodb://localhost:27017/NNPTUD');
 mongoose.connection.on('connected',()=>{
   console.log("connected");
